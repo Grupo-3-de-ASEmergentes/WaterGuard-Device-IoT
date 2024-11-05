@@ -18,12 +18,14 @@ String items[menuLength] = {"Volumen:", "Temperatura:", "Calidad (pH):"};
 bool inMeasurementView = false;
 
 // Intervalo de publicación
+const long measurementInterval = 100;
 const long interval = 2000;
 
 // Zona horaria
 const int8_t TIME_ZONE = -5;
 
 // Último tiempo de envío
+unsigned long lastMillisMeasurement = 0;
 unsigned long lastMillis = 0;
 
 // Objetos para comunicación segura
@@ -33,12 +35,7 @@ BearSSL::X509List client_crt(client_cert); // Certificado del cliente
 BearSSL::PrivateKey key(privkey);          // Clave privada
 PubSubClient client(net);
 
-// ===== VARIABLES DE SENSORES ===== //
-// Sensor de ultrasonido
-long duration;
 int volume;
-
-// Valores simulados de temperatura y pH
 float temperature;
 float quality;
 
@@ -87,7 +84,7 @@ void measurementView() {
   oledDisplay.setCursor(5, 40);
   if (menuIndex == 0) {
     oledDisplay.print(volume);
-    oledDisplay.print(" cm");
+    oledDisplay.print(" L");
   } else if (menuIndex == 1) {
     oledDisplay.print(temperature);
     oledDisplay.print(" °C");
@@ -101,19 +98,23 @@ void measurementView() {
 // ===== FUNCIONES DE SENSORES ===== //
 // Generar valores aleatorios para temperatura y pH
 void generateValues() {
-  temperature = random(180, 350) / 10.0;  // De 18.0 a 35.0 °C
-  quality = random(60, 90) / 10.0;             // De 6.0 a 9.0 pH
-}
+  // Simular cambios graduales en el volumen
+  baseVolume += random(-5, 6) * volumeChangeRate;
+  if (baseVolume < 100) baseVolume = 100; // Evitar que caiga por debajo de 100 cm
+  if (baseVolume > 500) baseVolume = 500; // Limitar el máximo a 500 cm
+  volume = baseVolume;
 
-// Medir volumen usando el sensor de ultrasonido
-void measureVolume() {
-  digitalWrite(TRIG_PIN, LOW);
-  delayMicroseconds(2);
-  digitalWrite(TRIG_PIN, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(TRIG_PIN, LOW);
-  duration = pulseIn(ECHO_PIN, HIGH);
-  volume = duration * 0.034 / 2;
+  // Simular cambios graduales en la temperatura
+  baseTemperature += random(-1, 2) * temperatureChangeRate;
+  if (baseTemperature < 15.0) baseTemperature = 15.0; // Limitar mínimo a 15 °C
+  if (baseTemperature > 40.0) baseTemperature = 40.0; // Limitar máximo a 40 °C
+  temperature = baseTemperature;
+
+  // Simular cambios graduales en la calidad (pH)
+  baseQuality += random(-1, 2) * qualityChangeRate;
+  if (baseQuality < 6.0) baseQuality = 6.0; // Limitar mínimo a 6.0 pH
+  if (baseQuality > 9.0) baseQuality = 9.0; // Limitar máximo a 9.0 pH
+  quality = baseQuality;
 }
 
 // ===== FUNCIONES DE AWS IoT ===== //
@@ -222,8 +223,10 @@ void setup() {
 }
 
 void loop() {
-  measureVolume();
-  generateValues();
+  if (millis() - lastMillisMeasurement > measurementInterval) {
+    lastMillisMeasurement = millis();
+    generateValues();
+  }
 
   // Publicar datos a intervalos regulares
   if (millis() - lastMillis > interval) {
@@ -231,7 +234,7 @@ void loop() {
     if (client.connected()) {
       // Publish message
       publishMessage();
-      Serial.print("Volumen: ");
+      Serial.print(" L, Volumen: ");
       Serial.print(volume);
       Serial.print(" cm, Temp: ");
       Serial.print(temperature);
@@ -246,10 +249,12 @@ void loop() {
   if (digitalRead(BUTTON_UP) == LOW) {
     if(!inMeasurementView){
       menuUp();
+      delay(200);
     }
   } else if (digitalRead(BUTTON_DOWN) == LOW) {
     if(!inMeasurementView){
       menuDown();
+      delay(200);
     }
   } else if (digitalRead(BUTTON_ENTER) == LOW) {
     if(!inMeasurementView){
@@ -258,6 +263,7 @@ void loop() {
       inMeasurementView = false;
       menuView();
     }
+    delay(200);
   }
 
   // Mostrar las medidas continuamente si estamos en una vista de medición

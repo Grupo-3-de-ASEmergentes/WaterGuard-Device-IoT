@@ -1,12 +1,11 @@
-// ===== WIFI AND AWS CONFIG ===== //
-// const char WIFI_SSID[] = "Johan_PC";
-// const char WIFI_PASSWORD[] = "@rduino4141!";
-const char WIFI_SSID[] = "Wonderland";
-const char WIFI_PASSWORD[] = "christian7795";
-const char THINGNAME[] = "waterGuard-tank";
-const char MQTT_HOST[] = "a31ru19gk0viac-ats.iot.us-east-1.amazonaws.com";
-const char AWS_IOT_PUBLISH_TOPIC[] = "dt/device/tank_01";
-const char AWS_IOT_SUBSCRIBE_TOPIC[] = "dt/device/tank_01";
+// ===== VARIABLES DE MEDICIONES ===== //
+// Inicialización de valores base y variación
+float baseVolume = 300; // Valor inicial aproximado para el volumen (cm)
+float baseTemperature = 25.0; // Valor inicial aproximado para la temperatura (°C)
+float baseQuality = 7.0; // Valor inicial aproximado para el pH
+float volumeChangeRate = 0.5; // Cambio gradual en volumen
+float temperatureChangeRate = 0.1; // Cambio gradual en temperatura
+float qualityChangeRate = 0.05; // Cambio gradual en calidad (pH)
 
 // ===== ULTRASONIDO ===== //
 #define TRIG_PIN 15
